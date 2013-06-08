@@ -2,13 +2,16 @@
 Enables Java completions / go to definition etc'''
 import sublime_plugin
 import sublime
-import eclim
+from . import eclim
 import re
 import os
 import json
-import Queue
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 import threading
-import subclim_logging
+from . import subclim_logging
 
 log = subclim_logging.getLogger('subclim')
 settings = sublime.load_settings("Subclim.sublime-settings")
@@ -40,7 +43,7 @@ t.start()
 
 def flatten_command_line(lst):
     '''shallow flatten for sequences of strings'''
-    return [i for sub in lst for i in ([sub] if isinstance(sub, basestring) else sub)]
+    return [i for sub in lst for i in ([sub] if isinstance(sub, str) else sub)]
 
 
 class UnknownSubclimTemplateHandlerException(Exception):
@@ -340,7 +343,7 @@ class JavaRunClass(sublime_plugin.TextCommand):
             class_name = package_name + "." + class_name
         result = self.call_eclim(project, file_name, class_name)
         # print stdout of Java program to ST2's console
-        print result
+        print(result)
 
     def find_package_name(self):
         '''Searches the current file line by line for the
@@ -559,13 +562,13 @@ class JavaValidation(sublime_plugin.EventListener):
 
         outlines = [view.line(view.text_point(lineno - 1, 0))
                     for lineno in lines.keys()
-                    if len(filter(lambda x: x['error'], lines[lineno])) > 0]
+                    if len(list(filter(lambda x: x['error'], lines[lineno]))) > 0]
         view.add_regions(
             'subclim-errors', outlines, 'keyword', 'dot', JavaValidation.drawType)
 
         outlines = [view.line(view.text_point(lineno - 1, 0))
                     for lineno in lines.keys()
-                    if len(filter(lambda x: x['error'], lines[lineno])) <= 0]
+                    if len(list(filter(lambda x: x['error'], lines[lineno]))) <= 0]
         view.add_regions(
             'subclim-warnings', outlines, 'comment', 'dot', JavaValidation.drawType)
 

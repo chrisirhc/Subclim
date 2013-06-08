@@ -10,7 +10,7 @@ directory.
 import os
 import json
 import subprocess
-import subclim_logging
+from . import subclim_logging
 
 # points to eclim executable, see module-level comments
 eclim_executable = None
@@ -35,7 +35,7 @@ def call_eclim(cmdline):
 
     cmd = None
     shell = None
-    if isinstance(cmdline, basestring):
+    if isinstance(cmdline, str):
         cmd = arg_string(cmdline)
         shell = True
     elif hasattr(cmdline, '__iter__'):
@@ -55,10 +55,10 @@ def call_eclim(cmdline):
     
     popen = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell, startupinfo=sinfo)
     out, err = popen.communicate()
-    log.debug("Results:\n" + out)
+    log.debug("Results:\n" + str(out))
 
     # error handling
-    if err or "Connection refused" in out:
+    if err or "Connection refused" in str(out):
         error_msg = 'Error connecting to Eclim server: '
         if out:
             error_msg += out
@@ -82,7 +82,7 @@ def get_context(filename):
         return None, None
 
     try:
-        obj = json.loads(out)
+        obj = json.loads(out.decode('utf-8'))
         for item in obj:
             path = os.path.abspath(item['path'])
             if path == project_path:
@@ -139,12 +139,14 @@ def parse_problems(out):
     '''Turns a problem message into a nice dict-representation'''
     results = {"errors": []}
     try:
-        obj = json.loads(out)
+        obj = json.loads(out.decode('utf-8'))
         for item in obj:
             filename = os.path.split(item['filename'])[1]
             isError = not item['warning']
             results["errors"].append({"file": filename, "line": item['line'], "message": item['message'], "filepath": item['filename'], "error": isError})
-    except Exception, e:
+    except Exception:
+        import sys
+        _, e, _ = sys.exc_info()
         log.error(e)
         results["errors"].append({"eclim_exception": str(e)})
     return results
